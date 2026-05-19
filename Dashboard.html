@@ -1,0 +1,494 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pedágio Inteligente</title>
+
+  <style>
+
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body{
+      background:#121212;
+      color:white;
+      padding:30px;
+    }
+
+    .header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:30px;
+    }
+
+    .title h1{
+      color:#FFD000;
+      font-size:36px;
+      margin-bottom:5px;
+    }
+
+    .title p{
+      color:#999;
+      font-size:14px;
+    }
+
+    .clock{
+      font-size:20px;
+      color:#FFD000;
+      font-weight:bold;
+    }
+
+    .dashboard{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap:20px;
+      margin-bottom:25px;
+    }
+
+    .card{
+      background:#1f1f1f;
+      border-radius:18px;
+      padding:25px;
+      border:1px solid #2e2e2e;
+      transition:0.3s;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .card:hover{
+      transform:translateY(-4px);
+      border-color:#FFD000;
+      box-shadow:0 0 20px rgba(255,208,0,0.2);
+    }
+
+    .card::before{
+      content:'';
+      position:absolute;
+      top:0;
+      left:0;
+      width:5px;
+      height:100%;
+      background:#FFD000;
+    }
+
+    .card-title{
+      color:#aaa;
+      font-size:14px;
+      margin-bottom:10px;
+      text-transform:uppercase;
+      letter-spacing:1px;
+    }
+
+    .card-value{
+      font-size:38px;
+      font-weight:bold;
+      color:#FFD000;
+    }
+
+    .status-container{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:20px;
+      margin-bottom:25px;
+    }
+
+    .status-card{
+      background:#1f1f1f;
+      border-radius:18px;
+      padding:30px;
+      border:1px solid #2e2e2e;
+    }
+
+    .status-title{
+      color:#aaa;
+      margin-bottom:15px;
+      font-size:15px;
+    }
+
+    .gate-status{
+      font-size:42px;
+      font-weight:bold;
+    }
+
+    .open{
+      color:#00ff88;
+      animation:pulse 1s infinite;
+    }
+
+    .closed{
+      color:#ff4d4d;
+    }
+
+    @keyframes pulse{
+      0%{
+        opacity:1;
+      }
+
+      50%{
+        opacity:0.5;
+      }
+
+      100%{
+        opacity:1;
+      }
+    }
+
+    .flow-bar{
+      width:100%;
+      height:22px;
+      background:#333;
+      border-radius:20px;
+      overflow:hidden;
+      margin-top:15px;
+    }
+
+    .flow-fill{
+      height:100%;
+      width:65%;
+      background:#FFD000;
+      transition:0.5s;
+    }
+
+    .table-container{
+      background:#1f1f1f;
+      border-radius:18px;
+      padding:25px;
+      border:1px solid #2e2e2e;
+    }
+
+    .table-title{
+      color:#FFD000;
+      font-size:24px;
+      margin-bottom:20px;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+    }
+
+    th{
+      text-align:left;
+      color:#FFD000;
+      padding-bottom:15px;
+      border-bottom:1px solid #333;
+    }
+
+    td{
+      padding:15px 0;
+      border-bottom:1px solid #2a2a2a;
+    }
+
+    .approved{
+      color:#00ff88;
+      font-weight:bold;
+    }
+
+    .denied{
+      color:#ff4d4d;
+      font-weight:bold;
+    }
+
+    .badge{
+      padding:5px 12px;
+      border-radius:20px;
+      font-size:12px;
+    }
+
+    .badge-open{
+      background:#00ff8830;
+      color:#00ff88;
+    }
+
+    .badge-closed{
+      background:#ff4d4d30;
+      color:#ff4d4d;
+    }
+
+    @media(max-width:900px){
+
+      .status-container{
+        grid-template-columns:1fr;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <div class="header">
+
+    <div class="title">
+      <h1>Pedágio Inteligente</h1>
+      <p>Monitoramento Inteligente em Tempo Real</p>
+    </div>
+
+    <div class="clock" id="clock">
+      00:00:00
+    </div>
+
+  </div>
+
+  <div class="dashboard">
+
+    <div class="card">
+      <div class="card-title">
+        Valor arrecadado
+      </div>
+
+      <div class="card-value" id="totalValue">
+        R$ 0
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        Carros liberados
+      </div>
+
+      <div class="card-value" id="approvedCars">
+        0
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        Pagamentos negados
+      </div>
+
+      <div class="card-value" id="deniedCars">
+        0
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        Tempo médio
+      </div>
+
+      <div class="card-value" id="avgTime">
+        0s
+      </div>
+    </div>
+
+  </div>
+
+  <div class="status-container">
+
+    <div class="status-card">
+
+      <div class="status-title">
+        STATUS DA CANCELA
+      </div>
+
+      <div class="gate-status open" id="gateStatus">
+        ● ABERTA
+      </div>
+
+    </div>
+
+    <div class="status-card">
+
+      <div class="status-title">
+        FLUXO DE VEÍCULOS
+      </div>
+
+      <h2 id="flowText">
+        Fluxo Moderado
+      </h2>
+
+      <div class="flow-bar">
+        <div class="flow-fill" id="flowFill"></div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="table-container">
+
+    <div class="table-title">
+      Últimas Passagens
+    </div>
+
+    <table>
+
+      <thead>
+        <tr>
+          <th>Usuário</th>
+          <th>Status</th>
+          <th>Tempo</th>
+        </tr>
+      </thead>
+
+      <tbody id="historyTable">
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+  <script>
+
+    let historyData = [];
+
+    function updateClock(){
+
+      const now = new Date();
+
+      document.getElementById("clock").innerHTML =
+        now.toLocaleTimeString();
+
+    }
+
+    setInterval(updateClock,1000);
+
+    updateClock();
+
+    async function fetchData(){
+
+      /*
+        SUBSTITUIR PELO ENDPOINT DO ESP32
+        EXEMPLO:
+        fetch("/dados")
+      */
+
+      const fakeData = {
+
+        totalValue: 128,
+        approvedCars: 18,
+        deniedCars: 3,
+        avgTime: 2.4,
+        gateOpen: Math.random() > 0.5,
+
+        flow: Math.floor(Math.random() * 100),
+
+        history:[
+          {
+            user:"Yasmin",
+            status:"APROVADO",
+            time:"2.1s",
+          },
+
+          {
+            user:"João",
+            status:"NEGADO",
+            time:"1.2s",
+          },
+
+          {
+            user:"Maria",
+            status:"APROVADO",
+            time:"2.7s",
+          }
+        ]
+
+      };
+
+      updateDashboard(fakeData);
+
+    }
+
+    function updateDashboard(data){
+
+      document.getElementById("totalValue").innerHTML =
+        `R$ ${data.totalValue}`;
+
+      document.getElementById("approvedCars").innerHTML =
+        data.approvedCars;
+
+      document.getElementById("deniedCars").innerHTML =
+        data.deniedCars;
+
+      document.getElementById("avgTime").innerHTML =
+        `${data.avgTime}s`;
+
+      const gate = document.getElementById("gateStatus");
+
+      if(data.gateOpen){
+
+        gate.innerHTML = "● ABERTA";
+        gate.className = "gate-status open";
+
+      }else{
+
+        gate.innerHTML = "● FECHADA";
+        gate.className = "gate-status closed";
+
+      }
+
+      const flowFill =
+        document.getElementById("flowFill");
+
+      flowFill.style.width =
+        `${data.flow}%`;
+
+      const flowText =
+        document.getElementById("flowText");
+
+      if(data.flow < 30){
+
+        flowText.innerHTML = "Fluxo Baixo";
+
+      }else if(data.flow < 70){
+
+        flowText.innerHTML = "Fluxo Moderado";
+
+      }else{
+
+        flowText.innerHTML = "Fluxo Alto";
+
+      }
+
+      const table =
+        document.getElementById("historyTable");
+
+      table.innerHTML = "";
+
+      data.history.forEach(item => {
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+
+          <td>${item.user}</td>
+
+          <td class="${
+            item.status === "APROVADO"
+            ? "approved"
+            : "denied"
+          }">
+
+            ${item.status}
+
+          </td>
+
+          <td>${item.time}</td>
+
+        `;
+
+        table.appendChild(row);
+
+      });
+
+    }
+
+    fetchData();
+
+    setInterval(fetchData,2000);
+
+  </script>
+
+</body>
+</html>
