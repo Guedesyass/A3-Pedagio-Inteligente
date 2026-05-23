@@ -4,52 +4,57 @@
 #include <MFRC522.h>
 #include <ESP32Servo.h>
 
-// ==========================
+// ======================================
 // WIFI
-// ==========================
+// ======================================
 
 const char* ssid = "SEU_WIFI";
 const char* password = "SUA_SENHA";
 
-// ==========================
+// ======================================
 // RFID
-// ==========================
+// ======================================
 
 #define SS_PIN 5
 #define RST_PIN 22
 
 MFRC522 rfid(SS_PIN, RST_PIN);
 
-// ==========================
+// ======================================
 // SERVO
-// ==========================
-
-#define SERVO_PIN 13
+// ======================================
 
 Servo cancela;
 
-// ==========================
+// ======================================
 // LEDS
-// ==========================
+// ======================================
 
-#define LED_GREEN 27
-#define LED_RED 26
+#define LED_VERDE 26
+#define LED_VERMELHO 27
 
-// ==========================
+// ======================================
+// ÂNGULOS
+// ======================================
+
+const int FECHADA = 90;
+const int ABERTA = 0;
+
+// ======================================
 // WEB SERVER
-// ==========================
+// ======================================
 
 WebServer server(80);
 
-// ==========================
-// VARIÁVEIS DO DASHBOARD
-// ==========================
+// ======================================
+// DASHBOARD
+// ======================================
 
 float valorTotal = 0;
 
 int carrosLiberados = 0;
 
-int pagamentosNegados = 0;
+int pagamentosPendentes = 0;
 
 float tempoTotal = 0;
 
@@ -61,41 +66,69 @@ String historicoHTML = "";
 
 float pedagio = 8.0;
 
-// ==========================
+// ======================================
+// FLUXO
+// ======================================
+
+unsigned long temposPassagem[20];
+
+int indicePassagem = 0;
+
+int fluxoAtual = 0;
+
+unsigned long ultimoCarro = 0;
+
+// ======================================
 // SALDOS
-// ==========================
+// ======================================
 
 float saldo1 = 1000;
 float saldo2 = 5;
 float saldo3 = 200;
 
-// ==========================
-// ABRIR CANCELA
-// ==========================
+// ======================================
+// CALCULAR FLUXO
+// ======================================
 
-void abrirCancela(){
+void calcularFluxo(){
 
-  statusCancela = "ABERTA";
+  unsigned long agora =
+  millis();
 
-  digitalWrite(LED_GREEN, HIGH);
-  digitalWrite(LED_RED, LOW);
+  if(
+    agora - ultimoCarro
+    > 30000
+  ){
 
-  cancela.write(90);
+    fluxoAtual = 0;
 
-  delay(3000);
+    return;
 
-  cancela.write(0);
+  }
 
-  statusCancela = "FECHADA";
+  int contador = 0;
 
-  digitalWrite(LED_GREEN, LOW);
-  digitalWrite(LED_RED, HIGH);
+  for(int i = 0; i < 20; i++){
+
+    if(
+      temposPassagem[i] != 0 &&
+      agora - temposPassagem[i]
+      <= 20000
+    ){
+
+      contador++;
+
+    }
+
+  }
+
+  fluxoAtual = contador;
 
 }
 
-// ==========================
+// ======================================
 // HISTÓRICO
-// ==========================
+// ======================================
 
 void atualizarHistorico(
   String usuario,
@@ -103,10 +136,25 @@ void atualizarHistorico(
   float tempo
 ){
 
-  String classe =
-  status == "APROVADO"
-  ? "approved"
-  : "denied";
+  String classe;
+
+  if(status == "APROVADO"){
+
+    classe = "approved";
+
+  }
+
+  else if(status == "PENDENTE"){
+
+    classe = "pending";
+
+  }
+
+  else{
+
+    classe = "denied";
+
+  }
 
   historicoHTML =
   "<tr><td>" + usuario +
@@ -119,9 +167,44 @@ void atualizarHistorico(
 
 }
 
-// ==========================
-// PROCESSAMENTO
-// ==========================
+// ======================================
+// ABRIR CANCELA
+// ======================================
+
+void abrirCancela(){
+
+  statusCancela = "ABERTA";
+
+  digitalWrite(LED_VERMELHO, LOW);
+  digitalWrite(LED_VERDE, HIGH);
+
+  cancela.write(ABERTA);
+
+  unsigned long inicio =
+  millis();
+
+  while(
+    millis() - inicio < 3000
+  ){
+
+    server.handleClient();
+
+    delay(10);
+
+  }
+
+  cancela.write(FECHADA);
+
+  statusCancela = "FECHADA";
+
+  digitalWrite(LED_VERMELHO, HIGH);
+  digitalWrite(LED_VERDE, LOW);
+
+}
+
+// ======================================
+// PROCESSAR PAGAMENTO
+// ======================================
 
 void processarPagamento(
   String usuario,
@@ -131,6 +214,10 @@ void processarPagamento(
   unsigned long inicio =
   millis();
 
+  // ======================================
+  // APROVADO
+  // ======================================
+
   if(saldo >= pedagio){
 
     saldo -= pedagio;
@@ -138,6 +225,21 @@ void processarPagamento(
     valorTotal += pedagio;
 
     carrosLiberados++;
+
+    temposPassagem[indicePassagem] =
+    millis();
+
+    indicePassagem++;
+
+    if(indicePassagem >= 20){
+
+      indicePassagem = 0;
+
+    }
+
+    calcularFluxo();
+
+    ultimoCarro = millis();
 
     abrirCancela();
 
@@ -157,12 +259,32 @@ void processarPagamento(
       tempo
     );
 
-  }else{
+  }
 
-    pagamentosNegados++;
+  // ======================================
+  // PENDENTE
+  // ======================================
 
-    digitalWrite(LED_GREEN, LOW);
-    piscarLedVermelho();
+  else{
+
+    pagamentosPendentes++;
+
+    temposPassagem[indicePassagem] =
+    millis();
+
+    indicePassagem++;
+
+    if(indicePassagem >= 20){
+
+      indicePassagem = 0;
+
+    }
+
+    calcularFluxo();
+
+    ultimoCarro = millis();
+
+    abrirCancela();
 
     float tempo =
     (millis() - inicio)
@@ -170,7 +292,7 @@ void processarPagamento(
 
     atualizarHistorico(
       usuario,
-      "NEGADO",
+      "PENDENTE",
       tempo
     );
 
@@ -178,11 +300,16 @@ void processarPagamento(
 
 }
 
-// ==========================
-// GERAR JSON
-// ==========================
+// ======================================
+// JSON
+// ======================================
 
 String gerarJSON(){
+
+  String historicoSeguro =
+  historicoHTML;
+
+  historicoSeguro.replace("\"", "'");
 
   String json = "{";
 
@@ -194,8 +321,8 @@ String gerarJSON(){
   json += carrosLiberados;
   json += ",";
 
-  json += "\"deniedCars\":";
-  json += pagamentosNegados;
+  json += "\"pendingCars\":";
+  json += pagamentosPendentes;
   json += ",";
 
   json += "\"avgTime\":";
@@ -211,16 +338,17 @@ String gerarJSON(){
   }else{
 
     json += "false";
+
   }
 
   json += ",";
 
   json += "\"flow\":";
-  json += random(20,90);
+  json += fluxoAtual;
   json += ",";
 
   json += "\"history\":\"";
-  json += historicoHTML;
+  json += historicoSeguro;
   json += "\"";
 
   json += "}";
@@ -229,53 +357,31 @@ String gerarJSON(){
 
 }
 
-// ==========================
+// ======================================
 // SETUP
-// ==========================
+// ======================================
 
-void piscarLedVermelho(){
-
-  for(int i = 0; i < 3; i++){
-
-    digitalWrite(LED_RED, HIGH);
-
-    delay(300);
-
-    digitalWrite(LED_RED, LOW);
-
-    delay(300);
-
-  }
-
-  // Mantém vermelho ligado após piscar
-  digitalWrite(LED_RED, HIGH);
-
-}
-
-void setup(){
+void setup() {
 
   Serial.begin(115200);
 
-  SPI.begin();
+  SPI.begin(18, 19, 23, 5);
 
   rfid.PCD_Init();
 
-  pinMode(LED_GREEN, OUTPUT);
-  pinMode(LED_RED, OUTPUT);
+  cancela.setPeriodHertz(50);
 
-  digitalWrite(LED_RED, HIGH);
+  cancela.attach(13, 500, 2400);
 
-  cancela.attach(SERVO_PIN);
+  cancela.write(FECHADA);
 
-  cancela.write(0);
+  pinMode(LED_VERDE, OUTPUT);
+  pinMode(LED_VERMELHO, OUTPUT);
 
-  // ==========================
-  // WIFI
-  // ==========================
+  digitalWrite(LED_VERMELHO, HIGH);
+  digitalWrite(LED_VERDE, LOW);
 
   WiFi.begin(ssid, password);
-
-  Serial.print("Conectando");
 
   while(
     WiFi.status()
@@ -283,26 +389,12 @@ void setup(){
   ){
 
     delay(500);
-    Serial.print(".");
 
   }
-
-  Serial.println("");
-  Serial.println("WiFi conectado");
-
-  // ==========================
-  // MOSTRAR IP
-  // ==========================
-
-  Serial.print("IP do ESP32: ");
 
   Serial.println(
     WiFi.localIP()
   );
-
-  // ==========================
-  // ROTA /dados
-  // ==========================
 
   server.on("/dados", [](){
 
@@ -323,33 +415,40 @@ void setup(){
 
 }
 
-// ==========================
+// ======================================
 // LOOP
-// ==========================
+// ======================================
 
-void loop(){
+void loop() {
 
   server.handleClient();
 
-  if(
-    !rfid.PICC_IsNewCardPresent()
-  ){
+  calcularFluxo();
+
+  if (!rfid.PICC_IsNewCardPresent()) {
     return;
   }
 
-  if(
-    !rfid.PICC_ReadCardSerial()
-  ){
+  if (!rfid.PICC_ReadCardSerial()) {
     return;
   }
 
   String conteudo = "";
 
-  for(
+  for (
     byte i = 0;
     i < rfid.uid.size;
     i++
-  ){
+  ) {
+
+    if (
+      rfid.uid.uidByte[i]
+      < 0x10
+    ) {
+
+      conteudo += "0";
+
+    }
 
     conteudo +=
     String(
@@ -361,13 +460,7 @@ void loop(){
 
   conteudo.toLowerCase();
 
-  Serial.println(conteudo);
-
-  /*
-    TROCAR PELOS UIDS REAIS
-  */
-
-  if(conteudo == "C20199EE"){
+  if(conteudo == "c20199ee"){
 
     processarPagamento(
       "FXI2B58",
@@ -376,7 +469,7 @@ void loop(){
 
   }
 
-  else if(conteudo == "95D67E05"){
+  else if(conteudo == "95d67e05"){
 
     processarPagamento(
       "QWP7D24",
@@ -385,7 +478,7 @@ void loop(){
 
   }
 
-  else if(conteudo == "914B0EA4"){
+  else if(conteudo == "914d0ea4"){
 
     processarPagamento(
       "RLA9E75",
@@ -395,5 +488,9 @@ void loop(){
   }
 
   rfid.PICC_HaltA();
+
+  rfid.PCD_StopCrypto1();
+
+  delay(1500);
 
 }
