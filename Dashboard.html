@@ -1,586 +1,753 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-
   <meta charset="UTF-8" />
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
-
-  <title>Pedágio Inteligente</title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pedágio Inteligente — Painel de Monitoramento</title>
   <style>
+    /* =============================================
+       RESET & BASE
+    ============================================= */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    *{
-      margin:0;
-      padding:0;
-      box-sizing:border-box;
-      font-family:Arial, Helvetica, sans-serif;
+    :root {
+      --bg-base:    #121212;
+      --bg-surface: #1F1F1F;
+      --bg-card:    #252525;
+      --accent:     #FFD000;
+      --accent-dim: rgba(255, 208, 0, 0.12);
+      --accent-mid: rgba(255, 208, 0, 0.25);
+      --text-primary:   #F0F0F0;
+      --text-secondary: #9E9E9E;
+      --text-muted:     #616161;
+      --border:         rgba(255, 255, 255, 0.07);
+      --border-accent:  rgba(255, 208, 0, 0.35);
+      --green:   #22C55E;
+      --yellow:  #FFD000;
+      --red:     #EF4444;
+      --green-dim:  rgba(34, 197, 94, 0.15);
+      --yellow-dim: rgba(255, 208, 0, 0.15);
+      --red-dim:    rgba(239, 68, 68, 0.15);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
     }
 
-    body{
-      background:#121212;
-      color:white;
-      padding:30px;
+    body {
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      line-height: 1.5;
     }
 
-    .header{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-bottom:30px;
-      flex-wrap:wrap;
-      gap:20px;
+    /* =============================================
+       HEADER
+    ============================================= */
+    header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-accent);
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
 
-    .title h1{
-      color:#FFD000;
-      font-size:36px;
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
-    .title p{
-      color:#999;
-      margin-top:5px;
+    /* Ícone de sinaleira estilizado em SVG inline */
+    .header-icon {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
     }
 
-    .clock{
-      color:#FFD000;
-      font-size:22px;
-      font-weight:bold;
+    .header-title {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: var(--accent);
     }
 
-    .dashboard{
-      display:grid;
-      grid-template-columns:
-      repeat(auto-fit, minmax(250px,1fr));
-
-      gap:20px;
-
-      margin-bottom:25px;
+    .header-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
     }
 
-    .card{
-      background:#1f1f1f;
-      border-radius:18px;
-      padding:25px;
-      border:1px solid #2a2a2a;
-      transition:0.3s;
-      position:relative;
-      overflow:hidden;
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-secondary);
     }
 
-    .card:hover{
-      transform:translateY(-4px);
-      border-color:#FFD000;
-      box-shadow:0 0 20px rgba(255,208,0,0.2);
+    /* Indicador de conexão ao vivo */
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse-dot 2s ease-in-out infinite;
     }
 
-    .card::before{
-      content:'';
-      position:absolute;
-      left:0;
-      top:0;
-      width:5px;
-      height:100%;
-      background:#FFD000;
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.8); }
     }
 
-    .card-title{
-      color:#999;
-      text-transform:uppercase;
-      font-size:14px;
-      margin-bottom:10px;
-      letter-spacing:1px;
+    /* =============================================
+       LAYOUT PRINCIPAL
+    ============================================= */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 20px 48px;
     }
 
-    .card-value{
-      color:#FFD000;
-      font-size:40px;
-      font-weight:bold;
+    /* Grid responsivo: 2 colunas em desktop, 1 em mobile */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
     }
 
-    .status-section{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:20px;
-      margin-bottom:25px;
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
     }
 
-    .status-card{
-      background:#1f1f1f;
-      border-radius:18px;
-      padding:25px;
-      border:1px solid #2a2a2a;
+    /* =============================================
+       CARD BASE
+    ============================================= */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      transition: border-color 0.25s ease, transform 0.2s ease;
     }
 
-    .status-title{
-      color:#999;
-      margin-bottom:15px;
-      text-transform:uppercase;
-      font-size:14px;
+    .card:hover {
+      border-color: rgba(255, 208, 0, 0.2);
+      transform: translateY(-1px);
     }
 
-    .gate-status{
-      font-size:42px;
-      font-weight:bold;
+    .card-label {
+      font-size: 11px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    .open{
-      color:#00ff88;
-      animation:pulse 1s infinite;
+    /* =============================================
+       CARD 1 — STATUS DA PRAÇA (destaque principal)
+    ============================================= */
+    .card-status-main {
+      grid-column: 1 / -1;
+      border-color: var(--border-accent);
+      background: linear-gradient(135deg, #1A1A0D 0%, #1F1F1F 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 24px 28px;
     }
 
-    .closed{
-      color:#ff4d4d;
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      transition: background 0.4s ease, color 0.4s ease;
     }
 
-    @keyframes pulse{
-
-      0%{
-        opacity:1;
-      }
-
-      50%{
-        opacity:0.5;
-      }
-
-      100%{
-        opacity:1;
-      }
-
+    .status-badge .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
     }
 
-    .flow-bar{
-      width:100%;
-      height:25px;
-      background:#333;
-      border-radius:20px;
-      overflow:hidden;
-      margin-top:15px;
+    /* Variantes de status */
+    .status-ok     { background: var(--green-dim);  color: var(--green);  border: 1px solid rgba(34,197,94,0.3); }
+    .status-mod    { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(255,208,0,0.3); }
+    .status-alto   { background: var(--red-dim);    color: var(--red);    border: 1px solid rgba(239,68,68,0.3); }
+
+    .status-ok   .dot { background: var(--green);  box-shadow: 0 0 6px var(--green); }
+    .status-mod  .dot { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+    .status-alto .dot { background: var(--red);    box-shadow: 0 0 6px var(--red); }
+
+    .status-main-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
     }
 
-    .flow-fill{
-      height:100%;
-      width:0%;
-      background:#FFD000;
-      transition:0.5s;
+    /* =============================================
+       BARRA DE PROGRESSO
+    ============================================= */
+    .progress-wrap {
+      background: rgba(255,255,255,0.06);
+      border-radius: 100px;
+      height: 8px;
+      overflow: hidden;
+      margin-top: 10px;
     }
 
-    .table-container{
-      background:#1f1f1f;
-      border-radius:18px;
-      padding:25px;
-      border:1px solid #2a2a2a;
+    .progress-bar {
+      height: 100%;
+      border-radius: 100px;
+      transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1), background 0.4s ease;
     }
 
-    .table-title{
-      color:#FFD000;
-      font-size:24px;
-      margin-bottom:20px;
+    .bar-ok  { background: var(--green); }
+    .bar-mod { background: var(--yellow); }
+    .bar-alto{ background: var(--red); }
+
+    /* =============================================
+       CARD — CANCELA (com animação)
+       Estado FECHADA : braço horizontal (→)
+       Estado ABERTA  : braço rotaciona 90° para
+                        baixo, ficando vertical (↓)
+    ============================================= */
+    .cancela-visual {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      margin-top: 14px;
     }
 
-    table{
-      width:100%;
-      border-collapse:collapse;
+    /* Poste fixo + trilho da cancela */
+    .cancela-track {
+      width: 80px;
+      height: 52px;        /* altura suficiente para o braço caber ao abrir */
+      position: relative;
     }
 
-    th{
-      text-align:left;
-      color:#FFD000;
-      padding-bottom:15px;
-      border-bottom:1px solid #333;
+    /* Poste vertical (base fixa, lado esquerdo) */
+    .cancela-track::before {
+      content: '';
+      position: absolute;
+      left: 8px;
+      top: 0;
+      width: 6px;
+      height: 100%;
+      background: rgba(255,255,255,0.15);
+      border-radius: 3px;
     }
 
-    td{
-      padding:15px 0;
-      border-bottom:1px solid #2a2a2a;
+    /* Braço horizontal (estado padrão = FECHADA) */
+    .cancela-arm {
+      position: absolute;
+      top: 4px;            /* alinhado ao topo do poste */
+      left: 8px;           /* nasce na borda direita do poste */
+      width: 58px;         /* comprimento do braço */
+      height: 6px;
+      background: var(--accent);
+      border-radius: 3px;
+      transform-origin: left center;   /* pivô na extremidade esquerda (ponto de encaixe) */
+      transform: rotate(0deg);         /* horizontal = fechada */
+      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+                  background 0.4s ease;
     }
 
-    .approved{
-      color:#00ff88;
-      font-weight:bold;
+    /* Aberta: gira 90° no sentido horário → fica vertical apontando para baixo */
+    .cancela-arm.aberta {
+      transform: rotate(90deg);
+      background: var(--green);
     }
 
-    .pending{
-      color:#FFD000;
-      font-weight:bold;
+    .cancela-status-text {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      margin-top: 8px;
+      transition: color 0.4s ease;
     }
 
-    .denied{
-      color:#ff4d4d;
-      font-weight:bold;
+    /* =============================================
+       NÚMERO DESTAQUE (veículos, tempo etc.)
+    ============================================= */
+    .big-number {
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 4px;
+      font-variant-numeric: tabular-nums;
     }
 
-    @media(max-width:900px){
-
-      .status-section{
-        grid-template-columns:1fr;
-      }
-
+    .big-unit {
+      font-size: 13px;
+      color: var(--text-secondary);
     }
 
+    /* =============================================
+       CARD — MENSAGEM AO MOTORISTA
+    ============================================= */
+    .card-message {
+      grid-column: 1 / -1;
+      border-color: var(--border-accent);
+      background: var(--accent-dim);
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .msg-icon {
+      font-size: 28px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .msg-text {
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--text-primary);
+    }
+
+    /* =============================================
+       RODAPÉ
+    ============================================= */
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      margin-top: 8px;
+    }
+
+    /* =============================================
+       ESTADO DE ERRO / OFFLINE
+    ============================================= */
+    .offline-banner {
+      display: none;
+      background: var(--red-dim);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
+      font-size: 13px;
+      color: var(--red);
+      margin-bottom: 16px;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .offline-banner.visible { display: flex; }
+
+    /* =============================================
+       ANIMAÇÃO DE ATUALIZAÇÃO (flash sutil)
+    ============================================= */
+    @keyframes update-flash {
+      0%   { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+
+    .updated { animation: update-flash 0.4s ease; }
+
+    /* =============================================
+       RESPONSIVIDADE
+    ============================================= */
+    @media (max-width: 600px) {
+      main { padding: 16px 12px 40px; }
+      .card-status-main { flex-direction: column; align-items: flex-start; }
+      .big-number { font-size: 28px; }
+      header { padding: 0 16px; }
+      .header-title { font-size: 13px; }
+    }
   </style>
-
 </head>
-
 <body>
 
-  <div class="header">
+  <!-- =============================================
+       HEADER FIXO
+  ============================================= -->
+  <header>
+    <div class="header-left">
+      <!-- Ícone de cancela de pedágio simplificado -->
+      <svg class="header-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="3" y="22" width="22" height="3" rx="1.5" fill="#FFD000"/>
+        <rect x="5" y="4" width="4" height="18" rx="2" fill="#FFD000"/>
+        <rect id="arm-icon" x="9" y="5" width="14" height="3" rx="1.5" fill="#FFD000" transform-origin="9 6.5" style="transition: transform 0.6s ease;"/>
+      </svg>
+      <div>
+        <div class="header-title">PEDÁGIO INTELIGENTE</div>
+        <div class="header-subtitle">Painel de Monitoramento em Tempo Real</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="live-dot" id="liveDot"></div>
+      <span id="lastUpdate">Aguardando...</span>
+    </div>
+  </header>
 
-    <div class="title">
+  <!-- =============================================
+       CONTEÚDO PRINCIPAL
+  ============================================= -->
+  <main>
 
-      <h1>Pedágio Inteligente</h1>
-
-      <p>
-        Monitoramento Inteligente em Tempo Real
-      </p>
-
+    <!-- Banner de erro de conexão (oculto por padrão) -->
+    <div class="offline-banner" id="offlineBanner" role="alert">
+      ⚠ Sem comunicação com o ESP32. Verifique a conexão Wi-Fi.
     </div>
 
-    <div
-      class="clock"
-      id="clock"
-    >
-      00:00:00
+    <!-- ------------------------------------------
+         LINHA 1: Status principal (full width)
+    ------------------------------------------ -->
+    <div class="grid-2">
+      <div class="card card-status-main" id="cardStatusMain">
+        <div>
+          <div class="status-main-title">Status da Praça</div>
+          <div class="status-badge status-ok" id="statusBadge">
+            <span class="dot"></span>
+            <span id="statusText">Operando normalmente</span>
+          </div>
+        </div>
+        <!-- Mensagem ao motorista embutida no card principal -->
+        <div style="text-align: right; max-width: 320px;">
+          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 6px;">Informação ao motorista</div>
+          <div id="msgMotorista" style="font-size: 14px; color: var(--text-primary); line-height: 1.5;">
+            Praça operando normalmente. Tempo estimado de espera de 5 segundos.
+          </div>
+        </div>
+      </div>
     </div>
 
-  </div>
+    <!-- ------------------------------------------
+         LINHA 2: Fluxo, Tempo de Espera, Ocupação
+    ------------------------------------------ -->
+    <div class="grid-3">
 
-  <div class="dashboard">
-
-    <div class="card">
-
-      <div class="card-title">
-        Valor arrecadado
+      <!-- Card: Fluxo Atual -->
+      <div class="card" id="cardFluxo">
+        <div class="card-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12h18M3 6h12M3 18h8"/></svg>
+          Fluxo Atual
+        </div>
+        <div class="big-number" id="fluxoLabel">Baixo</div>
+        <div class="big-unit" id="fluxoVeiculos">0 veículos nos últimos 20s</div>
+        <div class="progress-wrap" style="margin-top: 14px;">
+          <div class="progress-bar bar-ok" id="fluxoBar" style="width: 0%;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--text-muted);">
+          <span>0%</span><span>50%</span><span>100%</span>
+        </div>
       </div>
 
-      <div
-        class="card-value"
-        id="totalValue"
-      >
-        R$ 0
+      <!-- Card: Tempo Estimado de Espera -->
+      <div class="card" id="cardEspera">
+        <div class="card-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Tempo Estimado de Espera
+        </div>
+        <div class="big-number" id="esperaNum">5</div>
+        <div class="big-unit">segundos</div>
+        <div style="margin-top: 14px; font-size: 12px; color: var(--text-secondary);" id="esperaDesc">
+          Passagem rápida prevista
+        </div>
       </div>
 
-    </div>
-
-    <div class="card">
-
-      <div class="card-title">
-        Carros liberados
-      </div>
-
-      <div
-        class="card-value"
-        id="approvedCars"
-      >
-        0
-      </div>
-
-    </div>
-
-    <div class="card">
-
-      <div class="card-title">
-        Pagamentos pendentes
-      </div>
-
-      <div
-        class="card-value"
-        id="pendingCars"
-      >
-        0
-      </div>
-
-    </div>
-
-    <div class="card">
-
-      <div class="card-title">
-        Tempo médio
-      </div>
-
-      <div
-        class="card-value"
-        id="avgTime"
-      >
-        0s
-      </div>
-
-    </div>
-
-  </div>
-
-  <div class="status-section">
-
-    <div class="status-card">
-
-      <div class="status-title">
-        Status da Cancela
-      </div>
-
-      <div
-        class="gate-status closed"
-        id="gateStatus"
-      >
-        ● FECHADA
-      </div>
-
-    </div>
-
-    <div class="status-card">
-
-      <div class="status-title">
-        Fluxo de Veículos
-      </div>
-
-      <h2 id="flowText">
-        Fluxo Baixo
-      </h2>
-
-      <div class="flow-bar">
-
-        <div
-          class="flow-fill"
-          id="flowFill"
-        ></div>
-
+      <!-- Card: Ocupação da Cabine -->
+      <div class="card" id="cardOcupacao">
+        <div class="card-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          Ocupação da Cabine
+        </div>
+        <div class="big-number" id="ocupacaoNum">30<span style="font-size: 20px;">%</span></div>
+        <div class="progress-wrap">
+          <div class="progress-bar bar-ok" id="ocupacaoBar" style="width: 30%;"></div>
+        </div>
+        <div style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);">
+          Capacidade de operação
+        </div>
       </div>
 
     </div>
 
-  </div>
+    <!-- ------------------------------------------
+         LINHA 3: Cancela, Veículos 20s, Última passagem
+    ------------------------------------------ -->
+    <div class="grid-3">
 
-  <div class="table-container">
+      <!-- Card: Status da Cancela -->
+      <div class="card" id="cardCancela" style="text-align: center;">
+        <div class="card-label" style="justify-content: center;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          Status da Cancela
+        </div>
+        <!-- Animação visual da cancela -->
+        <div class="cancela-visual">
+          <div class="cancela-track">
+            <div class="cancela-arm" id="cancelaArm"></div>
+          </div>
+        </div>
+        <div class="cancela-status-text" id="cancelaText" style="color: var(--accent);">
+          ● FECHADA
+        </div>
+      </div>
 
-    <div class="table-title">
-      Últimas Passagens
+      <!-- Card: Veículos nos últimos 20s -->
+      <div class="card" id="cardVeiculos">
+        <div class="card-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="1" y="8" width="15" height="8" rx="2"/><path d="M16 10h4l2 4H16"/><circle cx="5.5" cy="17.5" r="1.5"/><circle cx="18.5" cy="17.5" r="1.5"/></svg>
+          Veículos — Últimos 20s
+        </div>
+        <div class="big-number" id="veiculosNum">0</div>
+        <div class="big-unit">veículos registrados</div>
+      </div>
+
+      <!-- Card: Última Passagem -->
+      <div class="card" id="cardUltima">
+        <div class="card-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12"/><path d="M12 12 l3 2"/></svg>
+          Última Passagem
+        </div>
+        <div class="big-number" id="ultimaNum">—</div>
+        <div class="big-unit">segundos atrás</div>
+        <div style="margin-top: 10px; font-size: 12px; color: var(--text-muted);" id="ultimaDesc">
+          Aguardando leitura RFID...
+        </div>
+      </div>
+
     </div>
 
-    <table>
+    <!-- Rodapé técnico -->
+    <div class="footer">
+      Dados atualizados a cada 2 segundos via ESP32 &nbsp;·&nbsp; Pedágio Inteligente v1.0
+      &nbsp;·&nbsp; <span id="footerTime">--:--:--</span>
+    </div>
 
-      <thead>
+  </main>
 
-        <tr>
-          <th>Placa do carro</th>
-          <th>Status</th>
-          <th>Tempo</th>
-        </tr>
-
-      </thead>
-
-      <tbody id="historyTable">
-
-      </tbody>
-
-    </table>
-
-  </div>
-
+  <!-- =============================================
+       JAVASCRIPT — Lógica de dados e atualização
+  ============================================= -->
   <script>
+    // ==========================================
+    // CONFIGURAÇÃO
+    // Troque pelo IP real do seu ESP32 na rede
+    // ==========================================
+    const ESP32_URL = 'http://IP_DO_ESP32/dados';
+    const INTERVALO_MS = 2000;
 
-    // ==========================
-    // RELÓGIO
-    // ==========================
+    // ==========================================
+    // ESTADO SIMULADO
+    // Usado como fallback para demonstração
+    // quando o ESP32 não estiver disponível
+    // ==========================================
+    let modoDemo = false;
+    let demoTick = 0;
 
-    function updateClock(){
-
-      const now =
-      new Date();
-
-      document.getElementById(
-        "clock"
-      ).innerHTML =
-      now.toLocaleTimeString();
-
+    // Retorna dados simulados ciclando pelos estados de fluxo
+    function dadosDemo() {
+      demoTick++;
+      const ciclo = Math.floor(demoTick / 5) % 4;
+      const cenarios = [
+        { gateOpen: false, flow: 0,  operationalStatus: 'OPERANDO NORMALMENTE', estimatedWait: 5,  vehiclesLast20s: 0, occupancy: 30, lastPassageSeconds: 45 },
+        { gateOpen: true,  flow: 1,  operationalStatus: 'FLUXO BAIXO',          estimatedWait: 5,  vehiclesLast20s: 2, occupancy: 30, lastPassageSeconds: 3  },
+        { gateOpen: false, flow: 3,  operationalStatus: 'FLUXO MODERADO',       estimatedWait: 15, vehiclesLast20s: 3, occupancy: 55, lastPassageSeconds: 8  },
+        { gateOpen: false, flow: 6,  operationalStatus: 'FLUXO ALTO',           estimatedWait: 30, vehiclesLast20s: 6, occupancy: 80, lastPassageSeconds: 2  },
+      ];
+      return cenarios[ciclo];
     }
 
-    setInterval(updateClock,1000);
-
-    updateClock();
-
-    // ==========================
-    // BUSCAR DADOS
-    // ==========================
-
-    async function fetchData(){
-
-      try{
-
-        /*
-          TROCAR PELO IP DO ESP32
-        */
-
-        const response =
-        await fetch(
-          "http://192.168.0.170/dados"
-        );
-
-        const data =
-        await response.json();
-
-        updateDashboard(data);
-
-      }
-
-      catch(error){
-
-        console.log(
-          "Erro:",
-          error
-        );
-
-      }
-
+    // ==========================================
+    // MAPEAMENTO DE ESTADOS
+    // Define cores e textos para cada nível de fluxo
+    // ==========================================
+    function resolverFluxo(data) {
+      const v = data.vehiclesLast20s ?? 0;
+      if (v === 0)        return { label: 'Sem Fluxo',      barra: 0,  cor: 'ok',  corBar: 'bar-ok'  };
+      if (v <= 2)         return { label: 'Fluxo Baixo',    barra: 30, cor: 'ok',  corBar: 'bar-ok'  };
+      if (v <= 4)         return { label: 'Fluxo Moderado', barra: 55, cor: 'mod', corBar: 'bar-mod' };
+      /* v >= 5 */        return { label: 'Fluxo Alto',     barra: 80, cor: 'alto', corBar: 'bar-alto' };
     }
 
-    // ==========================
-    // DASHBOARD
-    // ==========================
-
-    function updateDashboard(data){
-
-      // ==========================
-      // CARDS
-      // ==========================
-
-      document.getElementById(
-        "totalValue"
-      ).innerHTML =
-      `R$ ${data.valorTotal.toFixed(2)}`;
-
-      document.getElementById(
-        "approvedCars"
-      ).innerHTML =
-      data.approvedCars;
-
-      document.getElementById(
-        "pendingCars"
-      ).innerHTML =
-      data.pendingCars;
-
-      document.getElementById(
-        "avgTime"
-      ).innerHTML =
-      `${data.avgTime.toFixed(1)}s`;
-
-      // ==========================
-      // CANCELA
-      // ==========================
-
-      const gate =
-      document.getElementById(
-        "gateStatus"
-      );
-
-      if(data.gateOpen){
-
-        gate.innerHTML =
-        "● ABERTA";
-
-        gate.className =
-        "gate-status open";
-
-      }
-
-      else{
-
-        gate.innerHTML =
-        "● FECHADA";
-
-        gate.className =
-        "gate-status closed";
-
-      }
-
-      // ==========================
-      // FLUXO
-      // ==========================
-
-      const flowText =
-      document.getElementById(
-        "flowText"
-      );
-
-      const flowFill =
-      document.getElementById(
-        "flowFill"
-      );
-
-      // SEM FLUXO
-
-      if(data.flow == 0){
-
-        flowText.innerHTML =
-        "Fluxo Baixo";
-
-        flowFill.style.width =
-        "0%";
-
-      }
-
-      // BAIXO
-
-      else if(data.flow <= 2){
-
-        flowText.innerHTML =
-        "Fluxo Baixo";
-
-        flowFill.style.width =
-        "30%";
-
-      }
-
-      // MÉDIO
-
-      else if(data.flow <= 4){
-
-        flowText.innerHTML =
-        "Fluxo Moderado";
-
-        flowFill.style.width =
-        "55%";
-
-      }
-
-      // ALTO
-
-      else{
-
-        flowText.innerHTML =
-        "Fluxo Alto";
-
-        flowFill.style.width =
-        "80%";
-
-      }
-
-      // ==========================
-      // HISTÓRICO
-      // ==========================
-
-      document.getElementById(
-        "historyTable"
-      ).innerHTML =
-      data.history;
-
+    function resolverStatus(cor) {
+      if (cor === 'ok')   return { classe: 'status-ok',   texto: 'Operando normalmente' };
+      if (cor === 'mod')  return { classe: 'status-mod',  texto: 'Fluxo moderado' };
+      /* alto */          return { classe: 'status-alto', texto: 'Fluxo intenso' };
     }
 
-    // ==========================
-    // AUTO UPDATE
-    // ==========================
+    function resolverMensagem(cor, wait) {
+      if (cor === 'ok')   return `Praça operando normalmente. Tempo estimado de espera de ${wait} segundos.`;
+      if (cor === 'mod')  return `Fluxo moderado detectado. Tempo estimado de espera de ${wait} segundos.`;
+      /* alto */          return `Fluxo intenso. Prepare-se para aguardar aproximadamente ${wait} segundos.`;
+    }
 
+    function resolverEsperaDesc(cor) {
+      if (cor === 'ok')   return 'Passagem rápida prevista';
+      if (cor === 'mod')  return 'Aguarde com atenção';
+      /* alto */          return 'Fluxo elevado — reduza a velocidade';
+    }
+
+    // ==========================================
+    // ATUALIZAÇÃO DA UI
+    // ==========================================
+    function atualizarUI(data) {
+      const fluxo   = resolverFluxo(data);
+      const status  = resolverStatus(fluxo.cor);
+      const gateOpen = data.gateOpen ?? false;
+      const veiculos = data.vehiclesLast20s ?? 0;
+      const espera   = data.estimatedWait ?? 5;
+      const ocupacao = data.occupancy ?? 30;
+      const ultima   = data.lastPassageSeconds ?? null;
+
+      // --- Status badge ---
+      const badge = document.getElementById('statusBadge');
+      badge.className = 'status-badge ' + status.classe;
+      document.getElementById('statusText').textContent = status.texto;
+
+      // --- Mensagem ao motorista ---
+      document.getElementById('msgMotorista').textContent =
+        resolverMensagem(fluxo.cor, espera);
+
+      // --- Fluxo ---
+      document.getElementById('fluxoLabel').textContent = fluxo.label;
+      document.getElementById('fluxoVeiculos').textContent =
+        `${veiculos} veículo${veiculos !== 1 ? 's' : ''} nos últimos 20s`;
+
+      const fluxoBar = document.getElementById('fluxoBar');
+      fluxoBar.style.width = fluxo.barra + '%';
+      fluxoBar.className   = 'progress-bar ' + fluxo.corBar;
+
+      // --- Espera ---
+      document.getElementById('esperaNum').textContent  = espera;
+      document.getElementById('esperaDesc').textContent = resolverEsperaDesc(fluxo.cor);
+
+      // --- Ocupação ---
+      document.getElementById('ocupacaoNum').innerHTML =
+        `${ocupacao}<span style="font-size:20px;">%</span>`;
+      const ocupBar = document.getElementById('ocupacaoBar');
+      ocupBar.style.width = ocupacao + '%';
+      ocupBar.className   = 'progress-bar ' + fluxo.corBar;
+
+      // --- Cancela ---
+      const arm       = document.getElementById('cancelaArm');
+      const cancelaT  = document.getElementById('cancelaText');
+      const armIcon   = document.getElementById('arm-icon');
+      if (gateOpen) {
+        arm.classList.add('aberta');
+        cancelaT.style.color = 'var(--green)';
+        cancelaT.textContent = '● ABERTA';
+        if (armIcon) armIcon.setAttribute('transform', 'rotate(-75, 9, 6.5)');
+      } else {
+        arm.classList.remove('aberta');
+        cancelaT.style.color = 'var(--accent)';
+        cancelaT.textContent = '● FECHADA';
+        if (armIcon) armIcon.removeAttribute('transform');
+      }
+
+      // --- Veículos 20s ---
+      document.getElementById('veiculosNum').textContent = veiculos;
+
+      // --- Última passagem ---
+      const ultimaEl   = document.getElementById('ultimaNum');
+      const ultimaDesc = document.getElementById('ultimaDesc');
+      if (ultima !== null && ultima < 9999) {
+        ultimaEl.textContent   = ultima;
+        ultimaDesc.textContent = ultima <= 5
+          ? 'Passagem muito recente'
+          : ultima <= 20
+            ? 'Última passagem recente'
+            : 'Sem passagens recentes';
+      } else {
+        ultimaEl.textContent   = '—';
+        ultimaDesc.textContent = 'Aguardando leitura RFID...';
+      }
+
+      // --- Timestamp ---
+      document.getElementById('lastUpdate').textContent =
+        'Atualizado ' + new Date().toLocaleTimeString('pt-BR');
+      document.getElementById('footerTime').textContent =
+        new Date().toLocaleTimeString('pt-BR');
+
+      // Flash de atualização sutil em cards
+      ['cardFluxo','cardEspera','cardOcupacao','cardCancela','cardVeiculos','cardUltima']
+        .forEach(id => {
+          const el = document.getElementById(id);
+          el.classList.remove('updated');
+          void el.offsetWidth; // força re-flow para reiniciar animação
+          el.classList.add('updated');
+        });
+    }
+
+    // ==========================================
+    // FETCH — Busca dados do ESP32
+    // ==========================================
+    async function fetchData() {
+      if (modoDemo) {
+        atualizarUI(dadosDemo());
+        return;
+      }
+
+      try {
+        const resp = await fetch(ESP32_URL, { signal: AbortSignal.timeout(3000) });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const json = await resp.json();
+
+        document.getElementById('offlineBanner').classList.remove('visible');
+        document.getElementById('liveDot').style.background = 'var(--green)';
+
+        atualizarUI(json);
+      } catch (err) {
+        // Se falhar, exibe banner e muda dot para vermelho
+        document.getElementById('offlineBanner').classList.add('visible');
+        document.getElementById('liveDot').style.background = 'var(--red)';
+        console.warn('ESP32 inacessível:', err.message);
+      }
+    }
+
+    // ==========================================
+    // MODO DEMO
+    // Detecta se a URL ainda tem IP_DO_ESP32
+    // e ativa simulação automática
+    // ==========================================
+    if (ESP32_URL.includes('IP_DO_ESP32')) {
+      modoDemo = true;
+      // Mostra aviso de demo no banner com outra mensagem
+      const banner = document.getElementById('offlineBanner');
+      banner.style.background = 'rgba(255,208,0,0.08)';
+      banner.style.color      = 'var(--accent)';
+      banner.style.borderColor = 'rgba(255,208,0,0.25)';
+      banner.textContent = '⚙ Modo demonstração ativo — substitua IP_DO_ESP32 pelo IP real do ESP32';
+      banner.classList.add('visible');
+    }
+
+    // ==========================================
+    // INICIALIZAÇÃO
+    // ==========================================
     fetchData();
-
-    setInterval(
-      fetchData,
-      2000
-    );
-
+    setInterval(fetchData, INTERVALO_MS);
   </script>
 
 </body>
-
 </html>
