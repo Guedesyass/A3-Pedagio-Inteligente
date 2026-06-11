@@ -1,5 +1,20 @@
 # 🚧 Pedágio Inteligente
 
+## Integrantes do Grupo
+
+| Nome | RA |
+|---|---|
+| Andrew Pedrosa Saraiva dos Santos | 82323912 |
+| Diogo de Azevedo Alonso | 823214091 |
+| Gustavo de Oliveira Afonso do Amaral | 82320503 |
+| Kaique Martins Dos Santos | 824123932 |
+| Kenedey Menditto do Nascimento | 823217614 |
+| Valéria Alves Silva | 82320665 |
+| Vitor Moreira dos Santos | 823214219 |
+| Yasmin Guedes da Silva | 82329802 |
+
+---
+
 Sistema de pedágio com ESP32, RFID, servo motor e dashboard web em tempo real.
 
 ---
