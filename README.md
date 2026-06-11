@@ -41,19 +41,20 @@ pedagio-inteligente/
 
 | Componente | Quantidade |
 |---|---|
-| ESP32 (qualquer modelo com Wi-Fi) | 1 |
+| ESP32 (modelo com Wi-Fi) | 1 |
 | Leitor RFID MFRC522 | 1 |
-| Tags RFID (cartões ou chaveiros) | 2 ou mais |
+| Tags RFID (cartões e chaveiros) | 4 |
 | Servo motor SG90 | 1 |
 | LED verde | 1 |
 | LED vermelho | 1 |
-| Resistores 220Ω | 2 |
+| Resistores 110Ω | 2 |
 | Protoboard e jumpers | — |
 | Cabo USB para o ESP32 | 1 |
 
 ### Software
 
-- [Arduino IDE](https://www.arduino.cc/en/software) — versão 2.x recomendada
+- [Arduino IDE](https://www.arduino.cc/en/software) —
+- VSCODE
 - Navegador web qualquer (Chrome, Firefox, Edge)
 
 ---
@@ -116,7 +117,7 @@ Conecte os componentes ao ESP32 conforme a tabela abaixo.
 
 ### LEDs
 
-| LED | Resistor 220Ω | Pino do ESP32 |
+| LED | Resistor 110Ω | Pino do ESP32 |
 |---|---|---|
 | Verde | Em série | GPIO 26 |
 | Vermelho | Em série | GPIO 27 |
